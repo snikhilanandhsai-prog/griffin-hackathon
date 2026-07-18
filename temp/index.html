@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Twin — Layer 03 / Scenario Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">DT</div>
+      <div class="brand-text">
+        <div class="name">Meridian Twin</div>
+        <div class="sub">Industrial Digital Twin Platform</div>
+      </div>
+    </div>
+    <div class="layer-pill"><span class="dot"></span>Layer 03 · Digital Twin · Simulation Live</div>
+  </header>
+
+  <div class="hero">
+    <div class="eyebrow">Scenario &amp; Failure Prediction Engine</div>
+    <h1>Stress-test the <span>virtual replica</span> before the real asset ever feels it.</h1>
+    <p>Every sensor reading from the mesh below feeds a live physical model of each machine. Push load, heat, and vibration past their real-world limits here first — the twin will show you exactly where and when it breaks.</p>
+  </div>
+
+  <div class="stage">
+
+    <!-- LEFT: asset fleet -->
+    <div class="panel">
+      <div class="panel-title">Fleet <span id="fleet-count">3 assets</span></div>
+      <div class="asset-list" id="asset-list"></div>
+      <div class="divider"></div>
+      <div class="panel-title">Twin Legend</div>
+      <div class="legend">
+        <div><span class="sw" style="background:var(--green)"></span> Nominal — within tolerance</div>
+        <div><span class="sw" style="background:var(--amber)"></span> Elevated — watch window</div>
+        <div><span class="sw" style="background:var(--red)"></span> Critical — action required</div>
+      </div>
+    </div>
+
+    <!-- CENTER: 3D viewport -->
+    <div class="panel viewport-panel">
+      <div class="viewport-head">
+        <div>
+          <div class="name" id="vp-asset-name">Pump Skid 04</div>
+          <div class="tag">Centrifugal pump · Bldg 2, Line C</div>
+        </div>
+        <div class="tag" id="vp-clock">Model time · T+00:00</div>
+      </div>
+      <div id="twin-canvas-wrap">
+        <div class="hud">
+          <div class="hud-chip"><div class="lbl">Vibration</div><div class="val" id="hud-vib">0.00 mm/s</div></div>
+          <div class="hud-chip"><div class="lbl">Bearing Temp</div><div class="val" id="hud-temp">0°C</div></div>
+          <div class="hud-chip"><div class="lbl">Load</div><div class="val" id="hud-load">0%</div></div>
+        </div>
+        <div class="risk-gauge">
+          <div class="lbl">Failure Risk</div>
+          <div class="num" id="risk-num" style="color:var(--green)">4%</div>
+          <div class="risk-bar"><div class="risk-bar-fill" id="risk-bar-fill"></div></div>
+          <div class="risk-note" id="risk-eta">RUL: 210 days</div>
+        </div>
+      </div>
+      <div class="viewport-foot">
+        <div class="telemetry-mini">
+          <div class="tm-item">Sensor Mesh sync <b id="sync-status">OK</b></div>
+          <div class="tm-item">Model confidence <b id="model-conf">96%</b></div>
+          <div class="tm-item">Last calibrated <b>6h ago</b></div>
+        </div>
+        <div class="tm-item">Drag to orbit · scroll to zoom</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: scenario controls -->
+    <div class="panel">
+      <div class="panel-title">Scenario Controls</div>
+
+      <div class="slider-row">
+        <label>Load <b id="lbl-load">62%</b></label>
+        <input type="range" id="sld-load" min="0" max="130" value="62">
+      </div>
+      <div class="slider-row">
+        <label>Ambient Temp <b id="lbl-temp">28°C</b></label>
+        <input type="range" id="sld-temp" min="10" max="65" value="28">
+      </div>
+      <div class="slider-row">
+        <label>Vibration Multiplier <b id="lbl-vibm">1.0×</b></label>
+        <input type="range" id="sld-vibm" min="5" max="40" value="10">
+      </div>
+
+      <button class="btn" id="btn-run">▶ Run 30-Day Stress Test</button>
+      <button class="btn secondary" id="btn-reset">Reset to Live Baseline</button>
+
+      <div class="divider"></div>
+      <div class="panel-title">Model Basis</div>
+      <div class="legend">
+        <div>Inputs: vibration, thermal &amp; load streams from Sensor Mesh (Layer 01)</div>
+        <div>Output: feeds predictive alerts to Core Edge (Layer 02) and fleet reports to Cloud Uplink (Layer 04)</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- LOWER: chart + log -->
+  <div class="lower">
+    <div class="panel">
+      <div class="panel-title">Predicted Failure Risk — Simulation Horizon <span id="chart-status">idle</span></div>
+      <canvas id="risk-chart"></canvas>
+      <div class="chart-legend">
+        <div><span class="ln" style="background:var(--cyan)"></span> Projected risk</div>
+        <div><span class="ln" style="background:var(--red)"></span> Critical threshold (70%)</div>
+        <div><span class="ln" style="background:var(--amber)"></span> Watch threshold (40%)</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Predictive Maintenance Log</div>
+      <div class="log-list" id="log-list">
+        <div class="log-empty">No events yet — run a stress test or adjust load to generate predictions.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div>Meridian Twin · Digital Twin Layer · read-only simulation, no live actuation</div>
+    <div id="footer-clock"></div>
+  </footer>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
