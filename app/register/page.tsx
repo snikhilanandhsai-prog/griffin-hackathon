@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -34,20 +34,9 @@ export default function LoginPage() {
         localStorage.setItem("infraai-theme", t);
       }
 
-      // Expose to inline onclick handlers
       window.setTheme = setTheme;
-
       const saved = localStorage.getItem("infraai-theme") || "night";
       setTheme(saved);
-
-      // If already signed in, skip login
-      _sb.auth.getSession().then(({ data }) => {
-        if (data && data.session) goToDashboard();
-      });
-
-      // Guest session pass
-      const auth = sessionStorage.getItem("infraai-auth");
-      if (auth === "guest") goToDashboard();
 
       // ── PASSWORD TOGGLE ────────────────────────────────────────
       window.togglePassword = function () {
@@ -63,24 +52,36 @@ export default function LoginPage() {
       };
 
       // ── ERROR / INFO ───────────────────────────────────────────
-      window.showError = function (msg) {
+      window.showError = function (msg, isSuccess = false) {
         const el = document.getElementById("error-msg");
         document.getElementById("error-text").textContent = msg;
+        
+        if (isSuccess) {
+            el.style.color = "var(--cyan)";
+            el.style.borderColor = "rgba(0,240,255,0.3)";
+            el.style.background = "rgba(0,240,255,0.07)";
+        } else {
+            el.style.color = "var(--magenta)";
+            el.style.borderColor = "rgba(255,43,214,0.3)";
+            el.style.background = "rgba(255,43,214,0.07)";
+        }
+        
         el.classList.add("show");
       };
+      
       window.hideError = function () {
         document.getElementById("error-msg").classList.remove("show");
       };
       document.addEventListener("input", window.hideError);
 
-      // ── LOGIN ──────────────────────────────────────────────────
-      window.handleLogin = async function (e) {
+      // ── REGISTER ──────────────────────────────────────────────────
+      window.handleRegister = async function (e) {
         e.preventDefault();
         window.hideError();
 
         const email = document.getElementById("email").value.trim();
         const pass = document.getElementById("password").value;
-        const btn = document.getElementById("sign-in-btn");
+        const btn = document.getElementById("register-btn");
 
         if (!email || !pass) {
           window.showError("Please fill in both email and password.");
@@ -88,84 +89,34 @@ export default function LoginPage() {
         }
 
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span> AUTHENTICATING…';
+        btn.innerHTML = '<span class="spinner"></span> REGISTERING…';
 
         try {
-          const { data, error } = await _sb.auth.signInWithPassword({
+          const { data, error } = await _sb.auth.signUp({
             email,
             password: pass,
           });
 
           if (error) {
             btn.disabled = false;
-            btn.innerHTML = "SIGN IN";
-            if (error.message.toLowerCase().includes("invalid login")) {
-              window.showError("Incorrect email or password. Please try again.");
-            } else if (error.message.toLowerCase().includes("email not confirmed")) {
-              window.showError("Please confirm your email address before signing in.");
-            } else {
-              window.showError(error.message);
-            }
+            btn.innerHTML = "SIGN UP";
+            window.showError(error.message);
             return;
           }
 
-          sessionStorage.setItem("infraai-auth", "user");
-          sessionStorage.setItem("infraai-user", data.user.email);
-          goToDashboard();
+          // Registration successful
+          btn.innerHTML = "SUCCESS";
+          window.showError("✓ Registration successful! Please sign in.", true);
+          setTimeout(() => {
+            window.location.href = "/login";
+          }, 2000);
+          
         } catch {
           btn.disabled = false;
-          btn.innerHTML = "SIGN IN";
+          btn.innerHTML = "SIGN UP";
           window.showError("Network error. Please check your connection and try again.");
         }
       };
-
-      // ── GUEST ──────────────────────────────────────────────────
-      window.continueAsGuest = function () {
-        const btn = document.getElementById("guest-btn");
-        btn.disabled = true;
-        btn.innerHTML =
-          '<span class="spinner" style="border-color:rgba(255,43,214,0.25);border-top-color:var(--magenta);"></span> ENTERING GUEST MODE…';
-        sessionStorage.setItem("infraai-auth", "guest");
-        sessionStorage.removeItem("infraai-user");
-        setTimeout(goToDashboard, 900);
-      };
-
-      // ── REDIRECT ───────────────────────────────────────────────
-      function goToDashboard() {
-        const card = document.getElementById("login-card");
-        if (!card) { window.location.href = "/"; return; }
-        card.style.transition = "opacity .35s, transform .35s";
-        card.style.opacity = "0";
-        card.style.transform = "scale(.96) translateY(-12px)";
-        setTimeout(() => { window.location.href = "/"; }, 380);
-      }
-
-      // ── FORGOT PASSWORD ────────────────────────────────────────
-      window.showForgot = async function (e) {
-        e.preventDefault();
-        const email = document.getElementById("email").value.trim();
-        if (!email) {
-          window.showError("Enter your email address above, then click Forgot password.");
-          document.getElementById("email").focus();
-          return;
-        }
-        const btn = document.querySelector(".forgot");
-        btn.textContent = "Sending…";
-        const { error } = await _sb.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin + "/login",
-        });
-        btn.textContent = "Forgot password?";
-        if (error) {
-          window.showError("Could not send reset email: " + error.message);
-        } else {
-          const errEl = document.getElementById("error-msg");
-          errEl.style.color = "var(--cyan)";
-          errEl.style.borderColor = "rgba(0,240,255,0.3)";
-          errEl.style.background = "rgba(0,240,255,0.07)";
-          window.showError("✓ Reset link sent! Check your inbox for " + email);
-        }
-      };
-
     });
   }, []);
 
@@ -188,9 +139,9 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Login card */}
+      {/* Register card */}
       <div className="login-body">
-        <div className="card" id="login-card">
+        <div className="card" id="register-card">
           <div className="brand">
             Infra<span>AI</span>
           </div>
@@ -201,19 +152,19 @@ export default function LoginPage() {
             ALL SYSTEMS OPERATIONAL
           </div>
 
-          <h1 className="card-title">Welcome back</h1>
+          <h1 className="card-title">Create an account</h1>
           <div className="card-sub">
-            Sign in to access your monitoring dashboard, or continue without credentials.
+            Sign up to access your monitoring dashboard.
           </div>
 
           {/* Error banner */}
           <div className="error-msg" id="error-msg" role="alert">
             <span>⚠</span>
-            <span id="error-text">Invalid credentials. Please try again.</span>
+            <span id="error-text"></span>
           </div>
 
-          {/* Sign-in form */}
-          <form id="login-form" onSubmit={(e) => window.handleLogin?.(e)} noValidate>
+          {/* Register form */}
+          <form id="register-form" onSubmit={(e) => window.handleRegister?.(e)} noValidate>
             <div className="field-login">
               <label className="lbl" htmlFor="email">
                 Email address
@@ -238,7 +189,7 @@ export default function LoginPage() {
                   id="password"
                   name="password"
                   placeholder="Enter your password"
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   required
                 />
                 <button
@@ -253,36 +204,15 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="row-meta">
-              <label className="checkbox-label" htmlFor="remember-me">
-                <input type="checkbox" id="remember-me" /> Remember me
-              </label>
-              <button className="forgot" onClick={(e) => window.showForgot?.(e)}>
-                Forgot password?
-              </button>
-            </div>
-
-            <button type="submit" className="btn-primary" id="sign-in-btn">
-              SIGN IN
+            <button type="submit" className="btn-primary" id="register-btn" style={{ marginTop: '24px' }}>
+              SIGN UP
             </button>
           </form>
 
-          <div className="divider-or">OR</div>
-
-          <button
-            className="btn-guest"
-            id="guest-btn"
-            onClick={() => window.continueAsGuest?.()}
-          >
-            <span className="guest-icon">👤</span>
-            Continue as Guest
-            <span className="guest-badge">NO CREDENTIALS</span>
-          </button>
-
-          <div className="card-footer">
-            Need an account?{" "}
-            <a href="/register">
-              Sign up
+          <div className="card-footer" style={{ marginTop: '24px' }}>
+            Already have an account?{" "}
+            <a href="/login">
+              Sign in
             </a>
           </div>
         </div>
