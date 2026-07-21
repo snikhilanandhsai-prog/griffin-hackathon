@@ -45,9 +45,8 @@ export default function LoginPage() {
         if (data && data.session) goToDashboard();
       });
 
-      // Guest session pass
+      // Session check (only Supabase)
       const auth = sessionStorage.getItem("infraai-auth");
-      if (auth === "guest") goToDashboard();
 
       // ── PASSWORD TOGGLE ────────────────────────────────────────
       window.togglePassword = function () {
@@ -119,16 +118,6 @@ export default function LoginPage() {
         }
       };
 
-      // ── GUEST ──────────────────────────────────────────────────
-      window.continueAsGuest = function () {
-        const btn = document.getElementById("guest-btn");
-        btn.disabled = true;
-        btn.innerHTML =
-          '<span class="spinner" style="border-color:rgba(255,43,214,0.25);border-top-color:var(--magenta);"></span> ENTERING GUEST MODE…';
-        sessionStorage.setItem("infraai-auth", "guest");
-        sessionStorage.removeItem("infraai-user");
-        setTimeout(goToDashboard, 900);
-      };
 
       // ── REDIRECT ───────────────────────────────────────────────
       function goToDashboard() {
@@ -267,17 +256,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="divider-or">OR</div>
-
-          <button
-            className="btn-guest"
-            id="guest-btn"
-            onClick={() => window.continueAsGuest?.()}
-          >
-            <span className="guest-icon">👤</span>
-            Continue as Guest
-            <span className="guest-badge">NO CREDENTIALS</span>
-          </button>
 
           <div className="card-footer">
             Need an account?{" "}

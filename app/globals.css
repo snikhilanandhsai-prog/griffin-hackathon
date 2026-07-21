@@ -589,38 +589,6 @@ input[type="checkbox"] {
 .btn-primary:active { transform: translateY(0); }
 .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
 
-.divider-or {
-  display: flex; align-items: center; gap: 12px;
-  margin: 22px 0; color: var(--muted); font-size: 11px;
-  font-family: var(--mono); letter-spacing: 0.06em;
-}
-.divider-or::before, .divider-or::after {
-  content: ''; flex: 1; height: 1px; background: var(--line);
-}
-
-.btn-guest {
-  width: 100%; padding: 11px;
-  background: transparent; border: 1px solid var(--line);
-  border-radius: 10px; color: var(--text);
-  font-family: var(--mono); font-size: 12.5px; font-weight: 600;
-  letter-spacing: 0.06em; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  transition: border-color .2s, background .2s, box-shadow .2s, transform .15s;
-}
-.btn-guest:hover {
-  border-color: var(--magenta);
-  background: rgba(255,43,214,0.07);
-  box-shadow: 0 0 20px var(--glow-magenta);
-  transform: translateY(-1px);
-}
-.btn-guest:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
-.btn-guest .guest-icon { font-size: 16px; line-height: 1; }
-.btn-guest .guest-badge {
-  font-size: 9px; padding: 2px 6px;
-  background: rgba(255,43,214,0.18); color: var(--magenta);
-  border-radius: 4px; letter-spacing: 0.08em;
-}
-
 /* error message */
 .error-msg {
   background: rgba(255,56,96,0.1);

@@ -25,7 +25,6 @@ export default function DashboardPage() {
       // Auth guard
       (async function () {
         const auth = sessionStorage.getItem("infraai-auth");
-        if (auth === "guest") return;
         const { data } = await _sb.auth.getSession();
         if (!data || !data.session) {
           sessionStorage.removeItem("infraai-auth");
@@ -42,8 +41,7 @@ export default function DashboardPage() {
         const user = sessionStorage.getItem("infraai-user");
         const label = document.getElementById("session-label");
         if (!label) return;
-        if (auth === "guest") label.textContent = "👤 GUEST SESSION";
-        else if (user) label.textContent = "✦ " + user;
+        if (user) label.textContent = "✦ " + user;
         else label.textContent = "✦ USER";
       })();
 
