@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InfraAI — Fleet Monitor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<link rel="stylesheet" href="styles.css">
+<script>
+  // ── Supabase client ──
+  const _SB_URL = 'https://xjbmmrbtnhegnlpfvfuo.supabase.co';
+  const _SB_KEY = 'sb_publishable_KNYdZVftmg14DQ1UjLeTPA_Sv2onrPJ';
+  const _sb = supabase.createClient(_SB_URL, _SB_KEY);
+
+  // Auth guard: allow guest (sessionStorage) OR a live Supabase session
+  (async function(){
+    var auth = sessionStorage.getItem('infraai-auth');
+    if (auth === 'guest') return; // guest pass— skip check
+    const { data } = await _sb.auth.getSession();
+    if (!data || !data.session) {
+      // No valid Supabase session
+      sessionStorage.removeItem('infraai-auth');
+      window.location.replace('login.html');
+    } else {
+      // Keep sessionStorage in sync
+      sessionStorage.setItem('infraai-auth', 'user');
+      sessionStorage.setItem('infraai-user', data.session.user.email);
+    }
+  })();
+</script>
+</head>
+<body>
+
+<div id="sidebar">
+  <div id="sidebar-head">
+    <div class="brand">Infra<span>AI</span></div>
+    <div class="sub">FLEET MONITOR</div>
+    <div id="session-badge" style="display:flex;align-items:center;justify-content:space-between;background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-family:var(--mono);font-size:10.5px;"><span id="session-label" style="color:var(--muted);"></span><button onclick="doLogout()" style="background:none;border:none;color:var(--red);font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.04em;padding:2px 6px;border-radius:4px;transition:background .15s;" onmouseover="this.style.background='rgba(255,56,96,0.12)'" onmouseout="this.style.background='none'">LOGOUT</button></div>
+    <div class="theme-toggle">
+      <button class="theme-btn" id="theme-btn-night" onclick="setTheme('night')">🌙 NIGHT</button>
+      <button class="theme-btn" id="theme-btn-day" onclick="setTheme('day')">☀ DAY</button>
+    </div>
+  </div>
+  <div id="asset-list"></div>
+  <button id="add-asset-btn" onclick="openAssetModal()">+ Add asset</button>
+</div>
+
+<div id="main">
+  <div id="empty-state">
+    <div class="big">◎</div>
+    <div>Add an asset to start monitoring</div>
+  </div>
+</div>
+
+<!-- Add Asset Modal -->
+<div class="modal-overlay" id="asset-modal">
+  <div class="modal">
+    <h3>Add asset</h3>
+    <div class="form-row">
+      <div class="field">
+        <label>Name</label>
+        <input id="na-name" placeholder="e.g. Pump Station 3">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Type</label>
+        <select id="na-type" onchange="onTypeChange()">
+          <option value="motor">Motor</option>
+          <option value="pump">Pump</option>
+          <option value="conveyor">Conveyor</option>
+          <option value="generator">Generator</option>
+          <option value="custom">Custom / Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Parameters tracked</label>
+      <div class="param-chip-row" id="na-params"></div>
+      <div style="display:flex; gap:6px; margin-top:8px;">
+        <input id="na-param-input" placeholder="add parameter (e.g. pressure_psi)" style="flex:1">
+        <button class="btn" onclick="addParamChip()">Add</button>
+      </div>
+      <div class="hint">Defaults are filled in for the selected type — add or remove as needed.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeAssetModal()">Cancel</button>
+      <button class="btn primary" onclick="createAsset()">Create asset</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+<script>
+  // Session info badge
+  (function(){
+    var auth  = sessionStorage.getItem('infraai-auth');
+    var user  = sessionStorage.getItem('infraai-user');
+    var label = document.getElementById('session-label');
+    if(auth === 'guest')   label.textContent = '👤 GUEST SESSION';
+    else if(user)          label.textContent = '✦ ' + user;
+    else                   label.textContent = '✦ USER';
+  })();
+
+  async function doLogout(){
+    // Sign out from Supabase (invalidates JWT)
+    await _sb.auth.signOut();
+    sessionStorage.removeItem('infraai-auth');
+    sessionStorage.removeItem('infraai-user');
+    window.location.href = 'login.html';
+  }
+</script>
+</body>
+</html>

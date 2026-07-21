@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en" id="html-root">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InfraAI — Sign In</title>
+  <meta name="description" content="Sign in to InfraAI Fleet Monitor — your intelligent infrastructure monitoring dashboard.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;600&display=swap">
+  <style>
+    /* ── DESIGN TOKENS (mirrors main app) ── */
+    :root {
+      --bg:         #05060B;
+      --panel:      #0A0D16;
+      --panel-2:    #10141F;
+      --line:       #232C42;
+      --text:       #E9ECFB;
+      --muted:      #7C87A8;
+      --cyan:       #00F0FF;
+      --magenta:    #FF2BD6;
+      --amber:      #FFC93C;
+      --red:        #FF3860;
+      --glow-cyan:  rgba(0,240,255,0.45);
+      --glow-mag:   rgba(255,43,214,0.4);
+      --scan-op:    0.05;
+      --mono: 'Roboto Mono', ui-monospace, monospace;
+      --sans: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+    }
+    html[data-theme="day"] {
+      --bg:        #F2F4FA;
+      --panel:     #FFFFFF;
+      --panel-2:   #F1F3FA;
+      --line:      #D7DCED;
+      --text:      #10121C;
+      --muted:     #5B6478;
+      --cyan:      #0092B8;
+      --magenta:   #C81FA3;
+      --amber:     #B8720A;
+      --red:       #D6274E;
+      --glow-cyan: rgba(0,146,184,0.22);
+      --glow-mag:  rgba(200,31,163,0.18);
+      --scan-op:   0.02;
+    }
+
+    /* ── RESET ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      overflow: hidden;
+      position: relative;
+      transition: background .25s, color .25s;
+    }
+
+    /* CRT scanlines */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 9999;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(255,255,255,var(--scan-op)) 0px,
+        rgba(255,255,255,var(--scan-op)) 1px,
+        transparent 1px, transparent 3px
+      );
+      mix-blend-mode: overlay;
+    }
+
+    /* ── ANIMATED GRID BACKGROUND ── */
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.35;
+      animation: gridDrift 20s linear infinite;
+    }
+    @keyframes gridDrift {
+      from { background-position: 0 0; }
+      to   { background-position: 48px 48px; }
+    }
+
+    /* ── GLOW ORBS ── */
+    .orb {
+      position: fixed; border-radius: 50%;
+      pointer-events: none; z-index: 0;
+      filter: blur(80px);
+      animation: orbPulse 6s ease-in-out infinite alternate;
+    }
+    .orb-cyan {
+      width: 520px; height: 520px;
+      top: -180px; left: -160px;
+      background: radial-gradient(circle, rgba(0,240,255,0.18) 0%, transparent 70%);
+    }
+    .orb-mag {
+      width: 440px; height: 440px;
+      bottom: -140px; right: -120px;
+      background: radial-gradient(circle, rgba(255,43,214,0.15) 0%, transparent 70%);
+      animation-delay: -3s;
+    }
+    @keyframes orbPulse {
+      from { opacity: 0.7; transform: scale(1); }
+      to   { opacity: 1;   transform: scale(1.08); }
+    }
+
+    /* ── CARD ── */
+    .card {
+      position: relative; z-index: 10;
+      width: min(440px, calc(100vw - 32px));
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 40px 36px 36px;
+      box-shadow:
+        0 0 0 1px rgba(0,240,255,0.06),
+        0 24px 64px rgba(0,0,0,0.55),
+        0 0 80px rgba(0,240,255,0.05);
+      animation: cardIn .45s cubic-bezier(.16,1,.3,1) both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(28px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* cyan top accent line */
+    .card::before {
+      content: '';
+      position: absolute; top: 0; left: 36px; right: 36px; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      border-radius: 0 0 2px 2px;
+      box-shadow: 0 0 18px var(--glow-cyan);
+    }
+
+    /* ── BRAND ── */
+    .brand {
+      font-weight: 800; font-size: 22px;
+      letter-spacing: 0.04em;
+      text-shadow: 0 0 18px var(--glow-cyan);
+      margin-bottom: 4px;
+    }
+    .brand span { color: var(--magenta); text-shadow: 0 0 14px var(--glow-mag); }
+    .sub {
+      font-family: var(--mono);
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    .card-title {
+      font-size: 17px; font-weight: 700;
+      letter-spacing: 0.01em;
+      margin-bottom: 4px;
+    }
+    .card-sub {
+      font-size: 12.5px; color: var(--muted);
+      margin-bottom: 26px; line-height: 1.5;
+    }
+
+    /* ── FORM ── */
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    label {
+      font-family: var(--mono);
+      font-size: 10.5px; font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 11px 14px;
+      font-size: 14px;
+      font-family: var(--sans);
+      color: var(--text);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    input::placeholder { color: var(--muted); }
+    input:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(0,240,255,0.12);
+    }
+    html[data-theme="day"] input:focus {
+      box-shadow: 0 0 0 3px rgba(0,146,184,0.14);
+    }
+
+    /* password wrapper */
+    .pw-wrap { position: relative; }
+    .pw-wrap input { width: 100%; padding-right: 40px; }
+    .pw-toggle {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 15px; line-height: 1;
+      padding: 2px; transition: color .2s;
+    }
+    .pw-toggle:hover { color: var(--cyan); }
+
+    .row-meta {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: -8px; margin-bottom: 18px;
+    }
+    .checkbox-label {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 12.5px; color: var(--muted); cursor: pointer;
+      user-select: none;
+    }
+    input[type="checkbox"] {
+      width: 15px; height: 15px;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+    .forgot {
+      font-size: 12px; color: var(--cyan);
+      text-decoration: none; font-weight: 500;
+      transition: opacity .15s;
+    }
+    .forgot:hover { opacity: 0.7; }
+
+    /* ── BUTTONS ── */
+    .btn-primary {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--cyan) 0%, #00c3d4 100%);
+      color: #001014;
+      font-family: var(--mono);
+      font-size: 13px; font-weight: 700;
+      letter-spacing: 0.08em;
+      border: none; border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 0 24px var(--glow-cyan);
+      transition: transform .15s, box-shadow .15s, filter .15s;
+      position: relative; overflow: hidden;
+    }
+    .btn-primary::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 60%);
+      border-radius: inherit;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 36px var(--glow-cyan), 0 8px 24px rgba(0,0,0,0.35);
+    }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled {
+      opacity: 0.55; cursor: not-allowed; transform: none;
+      box-shadow: none;
+    }
+
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 22px 0;
+      color: var(--muted); font-size: 11px;
+      font-family: var(--mono); letter-spacing: 0.06em;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1;
+      height: 1px; background: var(--line);
+    }
+
+    .btn-guest {
+      width: 100%;
+      padding: 11px;
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12.5px; font-weight: 600;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: border-color .2s, background .2s, box-shadow .2s, transform .15s;
+    }
+    .btn-guest:hover {
+      border-color: var(--magenta);
+      background: rgba(255,43,214,0.07);
+      box-shadow: 0 0 20px var(--glow-mag);
+      transform: translateY(-1px);
+    }
+    .btn-guest:disabled {
+      opacity: 0.6; cursor: not-allowed; transform: none;
+      box-shadow: none;
+    }
+    .btn-guest .guest-icon { font-size: 16px; line-height: 1; }
+    .btn-guest .guest-badge {
+      font-size: 9px; padding: 2px 6px;
+      background: rgba(255,43,214,0.18);
+      color: var(--magenta);
+      border-radius: 4px;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── ERROR MESSAGE ── */
+    .error-msg {
+      background: rgba(255,56,96,0.1);
+      border: 1px solid rgba(255,56,96,0.3);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12.5px; color: var(--red);
+      margin-bottom: 14px;
+      display: none; align-items: center; gap: 8px;
+    }
+    .error-msg.show { display: flex; }
+
+    /* ── LOADING SPINNER ── */
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(0,20,24,0.3);
+      border-top-color: #001014;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── FOOTER ── */
+    .card-footer {
+      text-align: center; margin-top: 22px;
+      font-size: 12px; color: var(--muted);
+    }
+    .card-footer a { color: var(--cyan); text-decoration: none; font-weight: 500; }
+    .card-footer a:hover { opacity: 0.75; }
+
+    /* ── THEME TOGGLE ── */
+    .top-bar {
+      position: fixed; top: 18px; right: 20px;
+      z-index: 100;
+      display: flex; gap: 8px; align-items: center;
+    }
+    .theme-toggle {
+      display: flex; background: var(--panel);
+      border: 1px solid var(--line); border-radius: 8px;
+      padding: 3px; gap: 2px;
+    }
+    .theme-btn {
+      background: transparent; border: none;
+      color: var(--muted); font-family: var(--mono);
+      font-size: 10px; font-weight: 700;
+      padding: 5px 9px; border-radius: 6px;
+      cursor: pointer; letter-spacing: 0.04em;
+      transition: background .2s, color .2s, box-shadow .2s;
+    }
+    .theme-btn.active {
+      background: var(--cyan); color: #001014;
+      box-shadow: 0 0 10px var(--glow-cyan);
+    }
+
+    /* ── STATUS DOT ── */
+    .status-row {
+      display: flex; align-items: center; gap: 7px;
+      font-family: var(--mono); font-size: 10.5px;
+      color: var(--muted); margin-bottom: 22px;
+    }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px rgba(34,197,94,0.6);
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.35; }
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+  </style>
+</head>
+<!-- Supabase JS (UMD) -->
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<body>
+
+  <!-- Animated background -->
+  <div class="bg-grid"></div>
+  <div class="orb orb-cyan"></div>
+  <div class="orb orb-mag"></div>
+
+  <!-- Theme toggle -->
+  <div class="top-bar">
+    <div class="theme-toggle">
+      <button class="theme-btn active" id="btn-night" onclick="setTheme('night')">🌙 NIGHT</button>
+      <button class="theme-btn"        id="btn-day"   onclick="setTheme('day')">☀ DAY</button>
+    </div>
+  </div>
+
+  <!-- Login card -->
+  <div class="card" id="login-card">
+
+    <div class="brand">Infra<span>AI</span></div>
+    <div class="sub">Fleet Monitor · Secure Access</div>
+
+    <div class="status-row">
+      <div class="status-dot"></div>
+      ALL SYSTEMS OPERATIONAL
+    </div>
+
+    <h1 class="card-title">Welcome back</h1>
+    <div class="card-sub">Sign in to access your monitoring dashboard, or continue without credentials.</div>
+
+    <!-- Error banner -->
+    <div class="error-msg" id="error-msg" role="alert">
+      <span>⚠</span>
+      <span id="error-text">Invalid credentials. Please try again.</span>
+    </div>
+
+    <!-- Sign-in form -->
+    <form id="login-form" onsubmit="handleLogin(event)" novalidate>
+      <div class="field">
+        <label for="email">Email address</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          placeholder="operator@infraai.io"
+          autocomplete="email"
+          required
+        >
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="pw-wrap">
+          <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+            required
+          >
+          <button type="button" class="pw-toggle" id="pw-toggle"
+            onclick="togglePassword()" aria-label="Toggle password visibility">
+            👁
+          </button>
+        </div>
+      </div>
+
+      <div class="row-meta">
+        <label class="checkbox-label" for="remember-me">
+          <input type="checkbox" id="remember-me"> Remember me
+        </label>
+        <a href="#" class="forgot" onclick="showForgot(event)">Forgot password?</a>
+      </div>
+
+      <button type="submit" class="btn-primary" id="sign-in-btn">
+        SIGN IN
+      </button>
+    </form>
+
+    <div class="divider">OR</div>
+
+    <button class="btn-guest" id="guest-btn" onclick="continueAsGuest()">
+      <span class="guest-icon">👤</span>
+      Continue as Guest
+      <span class="guest-badge">NO CREDENTIALS</span>
+    </button>
+
+    <div class="card-footer">
+      Need an account? <a href="#" onclick="showSignup(event)">Request access</a>
+    </div>
+
+  </div>
+
+  <script>
+    // ── SUPABASE CLIENT ──────────────────────────────────────────────────
+    const SUPABASE_URL = 'https://xjbmmrbtnhegnlpfvfuo.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_KNYdZVftmg14DQ1UjLeTPA_Sv2onrPJ';
+    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ── THEME ────────────────────────────────────────────────────────────
+    function setTheme(t) {
+      const root = document.getElementById('html-root');
+      root.setAttribute('data-theme', t === 'day' ? 'day' : '');
+      document.getElementById('btn-night').classList.toggle('active', t === 'night');
+      document.getElementById('btn-day').classList.toggle('active', t === 'day');
+      localStorage.setItem('infraai-theme', t);
+    }
+    (function () {
+      const saved = localStorage.getItem('infraai-theme') || 'night';
+      setTheme(saved);
+      // If already signed in via Supabase, skip login
+      _sb.auth.getSession().then(({ data }) => {
+        if (data && data.session) goToDashboard();
+      });
+    })();
+
+    // ── PASSWORD TOGGLE ──────────────────────────────────────────────────
+    function togglePassword() {
+      const pw  = document.getElementById('password');
+      const btn = document.getElementById('pw-toggle');
+      if (pw.type === 'password') { pw.type = 'text';     btn.textContent = '🙈'; }
+      else                        { pw.type = 'password'; btn.textContent = '👁'; }
+    }
+
+    // ── ERROR / INFO ─────────────────────────────────────────────────────
+    function showError(msg) {
+      const el = document.getElementById('error-msg');
+      document.getElementById('error-text').textContent = msg;
+      el.classList.add('show');
+    }
+    function hideError() {
+      document.getElementById('error-msg').classList.remove('show');
+    }
+    document.addEventListener('input', hideError);
+
+    // ── LOGIN via Supabase Auth ───────────────────────────────────────────
+    async function handleLogin(e) {
+      e.preventDefault();
+      hideError();
+
+      const email = document.getElementById('email').value.trim();
+      const pass  = document.getElementById('password').value;
+      const btn   = document.getElementById('sign-in-btn');
+
+      if (!email || !pass) {
+        showError('Please fill in both email and password.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> AUTHENTICATING…';
+
+      try {
+        const { data, error } = await _sb.auth.signInWithPassword({
+          email: email,
+          password: pass
+        });
+
+        if (error) {
+          btn.disabled = false;
+          btn.innerHTML = 'SIGN IN';
+          // Surface friendly messages
+          if (error.message.toLowerCase().includes('invalid login')) {
+            showError('Incorrect email or password. Please try again.');
+          } else if (error.message.toLowerCase().includes('email not confirmed')) {
+            showError('Please confirm your email address before signing in.');
+          } else {
+            showError(error.message);
+          }
+          return;
+        }
+
+        // Success — Supabase persists session automatically
+        sessionStorage.setItem('infraai-auth', 'user');
+        sessionStorage.setItem('infraai-user', data.user.email);
+        goToDashboard();
+
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = 'SIGN IN';
+        showError('Network error. Please check your connection and try again.');
+      }
+    }
+
+    // ── GUEST (no Supabase — sessionStorage only) ────────────────────────
+    function continueAsGuest() {
+      const btn = document.getElementById('guest-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner" style="border-color:rgba(255,43,214,0.25);border-top-color:var(--magenta);"></span> ENTERING GUEST MODE…';
+      sessionStorage.setItem('infraai-auth', 'guest');
+      sessionStorage.removeItem('infraai-user');
+      setTimeout(goToDashboard, 900);
+    }
+
+    // ── REDIRECT ─────────────────────────────────────────────────────────
+    function goToDashboard() {
+      const card = document.getElementById('login-card');
+      if (!card) return;
+      card.style.transition = 'opacity .35s, transform .35s';
+      card.style.opacity    = '0';
+      card.style.transform  = 'scale(.96) translateY(-12px)';
+      setTimeout(() => { window.location.href = 'index.html'; }, 380);
+    }
+
+    // ── FORGOT PASSWORD via Supabase ──────────────────────────────────────
+    async function showForgot(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      if (!email) {
+        showError('Enter your email address above, then click Forgot password.');
+        document.getElementById('email').focus();
+        return;
+      }
+      const btn = document.querySelector('.forgot');
+      btn.textContent = 'Sending…';
+      const { error } = await _sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/login.html'
+      });
+      btn.textContent = 'Forgot password?';
+      if (error) {
+        showError('Could not send reset email: ' + error.message);
+      } else {
+        showError('✓ Reset link sent! Check your inbox for ' + email);
+        document.getElementById('error-msg').style.color = 'var(--cyan)';
+        document.getElementById('error-msg').style.borderColor = 'rgba(0,240,255,0.3)';
+        document.getElementById('error-msg').style.background = 'rgba(0,240,255,0.07)';
+      }
+    }
+
+    // ── SIGN UP stub ──────────────────────────────────────────────────────
+    function showSignup(e) {
+      e.preventDefault();
+      showError('Account creation is managed by your administrator. Contact your system admin for access.');
+    }
+  </script>
+</body>
+</html>
