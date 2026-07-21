@@ -28,6 +28,19 @@ function toast(msg, isErr){
 const STORAGE_BACKEND = (typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function')
   ? 'artifact' : 'local';
 
+let _sbClient = null;
+function getSupabase() {
+  if (_sbClient) return _sbClient;
+  if (typeof window.supabase !== 'undefined' && window.SUPABASE_ENV) {
+    const sbEnv = window.SUPABASE_ENV;
+    if (sbEnv.url && sbEnv.key) {
+      _sbClient = window.supabase.createClient(sbEnv.url, sbEnv.key);
+      return _sbClient;
+    }
+  }
+  return null;
+}
+
 async function storeGet(key){
   if(STORAGE_BACKEND === 'artifact'){
     try{ const r = await window.storage.get(key); return r ? JSON.parse(r.value) : null; }
@@ -67,41 +80,48 @@ async function init(){
   const savedTheme = await storeGet('theme');
   await setTheme(savedTheme || 'night');
   
-  let a = await storeGet('assets');
-  if (!a || a.length === 0) {
-    if (typeof window.supabase !== 'undefined') {
-      try {
-        const sbEnv = window.SUPABASE_ENV;
-        if (!sbEnv || !sbEnv.url || !sbEnv.key) {
-           console.error("Missing SUPABASE_ENV on window.");
-           return;
-        }
-        const _sb = window.supabase.createClient(sbEnv.url, sbEnv.key);
-        const { data: remoteAssets, error: assetErr } = await _sb.from('assets').select('*');
-        if (!assetErr && remoteAssets && remoteAssets.length > 0) {
-          a = remoteAssets.map(ra => ({
-            id: ra.id,
-            name: ra.name,
-            type: ra.type,
-            params: ra.params,
-            createdAt: ra.created_at
-          }));
-          await storeSet('assets', a);
-          for (const asset of a) {
-            const { data: remoteReadings } = await _sb.from('readings').select('*').eq('asset_id', asset.id).order('timestamp', { ascending: true });
-            if (remoteReadings) {
-              const formattedReadings = remoteReadings.map(r => ({
-                timestamp: r.timestamp,
-                values: r.values
-              }));
-              await storeSet('readings:' + asset.id, formattedReadings);
-            }
+  let a = [];
+  const sb = getSupabase();
+  let isAuth = false;
+  
+  if (sb) {
+    const { data } = await sb.auth.getSession();
+    if (data && data.session) {
+      isAuth = true;
+    }
+  }
+  
+  if (isAuth) {
+    // If authenticated, ALWAYS fetch from Supabase to sync data for this user
+    try {
+      const { data: remoteAssets, error: assetErr } = await sb.from('assets').select('*');
+      if (!assetErr && remoteAssets) {
+        a = remoteAssets.map(ra => ({
+          id: ra.id,
+          name: ra.name,
+          type: ra.type,
+          params: ra.params,
+          createdAt: ra.created_at
+        }));
+        await storeSet('assets', a);
+        for (const asset of a) {
+          const { data: remoteReadings } = await sb.from('readings').select('*').eq('asset_id', asset.id).order('timestamp', { ascending: true });
+          if (remoteReadings) {
+            const formattedReadings = remoteReadings.map(r => ({
+              timestamp: r.timestamp,
+              values: r.values
+            }));
+            await storeSet('readings:' + asset.id, formattedReadings);
           }
         }
-      } catch (err) {
-        console.error("Failed to seed from Supabase", err);
       }
+    } catch (err) {
+      console.error("Failed to fetch from Supabase", err);
+      a = await storeGet('assets') || [];
     }
+  } else {
+    // Guest mode or Supabase not available
+    a = await storeGet('assets') || [];
   }
 
   assets = a || [];
@@ -147,6 +167,26 @@ async function createAsset(){
   if(!name){ toast('Give the asset a name', true); return; }
   if(!pendingParams.length){ toast('Add at least one parameter to track', true); return; }
   const asset = { id:'a_'+Date.now(), name, type, params:pendingParams.slice(), createdAt:Date.now() };
+
+  const sb = getSupabase();
+  if (sb) {
+    const { data } = await sb.auth.getSession();
+    if (data && data.session) {
+      const { error } = await sb.from('assets').insert([{
+        id: asset.id,
+        name: asset.name,
+        type: asset.type,
+        params: asset.params,
+        created_at: asset.createdAt
+      }]);
+      if (error) {
+        toast('Failed to save asset to cloud', true);
+        console.error(error);
+        return;
+      }
+    }
+  }
+
   assets.push(asset);
   readingsCache[asset.id] = [];
   await storeSet('assets', assets);
@@ -158,6 +198,15 @@ async function createAsset(){
 
 async function deleteAsset(id){
   if(!confirm('Delete this asset and all its data?')) return;
+
+  const sb = getSupabase();
+  if (sb) {
+    const { data } = await sb.auth.getSession();
+    if (data && data.session) {
+      await sb.from('assets').delete().eq('id', id);
+    }
+  }
+
   assets = assets.filter(a=>a.id!==id);
   delete readingsCache[id];
   await storeSet('assets', assets);
@@ -648,6 +697,24 @@ async function submitManualReading(){
   if(!any){ toast('Enter at least one value', true); return; }
   const tsEl = document.getElementById('mf_timestamp');
   const timestamp = tsEl.value ? new Date(tsEl.value).getTime() : Date.now();
+
+  const sb = getSupabase();
+  if (sb) {
+    const { data } = await sb.auth.getSession();
+    if (data && data.session) {
+      const { error } = await sb.from('readings').insert([{
+        asset_id: asset.id,
+        timestamp: timestamp,
+        values: values
+      }]);
+      if (error) {
+        toast('Failed to save reading to cloud', true);
+        console.error(error);
+        return;
+      }
+    }
+  }
+
   readingsCache[asset.id].push({ timestamp, values });
   await storeSet('readings:'+asset.id, readingsCache[asset.id]);
   renderSidebar();
@@ -675,6 +742,7 @@ async function importCsvText(){
   if(parsed.errors && parsed.errors.length){ toast('CSV parse issue — check formatting', true); return; }
 
   let added = 0;
+  const newReadings = [];
   for(const row of parsed.data){
     const values = {};
     let any = false;
@@ -691,10 +759,30 @@ async function importCsvText(){
       const parsedDate = new Date(row[tsKey]);
       if(!isNaN(parsedDate.getTime())) timestamp = parsedDate.getTime();
     }
-    readingsCache[asset.id].push({ timestamp, values });
+    newReadings.push({ timestamp, values });
     added++;
   }
   if(!added){ toast('No matching columns found in CSV', true); return; }
+
+  const sb = getSupabase();
+  if (sb) {
+    const { data } = await sb.auth.getSession();
+    if (data && data.session) {
+      const records = newReadings.map(r => ({
+        asset_id: asset.id,
+        timestamp: r.timestamp,
+        values: r.values
+      }));
+      const { error } = await sb.from('readings').insert(records);
+      if (error) {
+        toast('Failed to save CSV readings to cloud', true);
+        console.error(error);
+        return;
+      }
+    }
+  }
+
+  readingsCache[asset.id].push(...newReadings);
   await storeSet('readings:'+asset.id, readingsCache[asset.id]);
   document.getElementById('csv-input').value = '';
   renderSidebar();
