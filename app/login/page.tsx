@@ -3,8 +3,8 @@
 
 import { useEffect, useRef } from "react";
 
-const SUPABASE_URL = "https://xjbmmrbtnhegnlpfvfuo.supabase.co";
-const SUPABASE_KEY = "sb_publishable_KNYdZVftmg14DQ1UjLeTPA_Sv2onrPJ";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export default function LoginPage() {
   const initializedRef = useRef(false);

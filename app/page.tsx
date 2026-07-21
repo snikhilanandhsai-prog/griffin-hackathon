@@ -3,8 +3,8 @@
 
 import Script from "next/script";
 
-const SUPABASE_URL = "https://xjbmmrbtnhegnlpfvfuo.supabase.co";
-const SUPABASE_KEY = "sb_publishable_KNYdZVftmg14DQ1UjLeTPA_Sv2onrPJ";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export default function DashboardPage() {
 
@@ -59,6 +59,9 @@ export default function DashboardPage() {
 
   return (
     <>
+      <Script id="supabase-env" strategy="beforeInteractive">
+        {`window.SUPABASE_ENV = { url: "${SUPABASE_URL}", key: "${SUPABASE_KEY}" };`}
+      </Script>
       {/* App script — script.js calls init() at the bottom automatically */}
       <Script
         src="/script.js"

@@ -66,7 +66,44 @@ async function setTheme(t){
 async function init(){
   const savedTheme = await storeGet('theme');
   await setTheme(savedTheme || 'night');
-  const a = await storeGet('assets');
+  
+  let a = await storeGet('assets');
+  if (!a || a.length === 0) {
+    if (typeof window.supabase !== 'undefined') {
+      try {
+        const sbEnv = window.SUPABASE_ENV;
+        if (!sbEnv || !sbEnv.url || !sbEnv.key) {
+           console.error("Missing SUPABASE_ENV on window.");
+           return;
+        }
+        const _sb = window.supabase.createClient(sbEnv.url, sbEnv.key);
+        const { data: remoteAssets, error: assetErr } = await _sb.from('assets').select('*');
+        if (!assetErr && remoteAssets && remoteAssets.length > 0) {
+          a = remoteAssets.map(ra => ({
+            id: ra.id,
+            name: ra.name,
+            type: ra.type,
+            params: ra.params,
+            createdAt: ra.created_at
+          }));
+          await storeSet('assets', a);
+          for (const asset of a) {
+            const { data: remoteReadings } = await _sb.from('readings').select('*').eq('asset_id', asset.id).order('timestamp', { ascending: true });
+            if (remoteReadings) {
+              const formattedReadings = remoteReadings.map(r => ({
+                timestamp: r.timestamp,
+                values: r.values
+              }));
+              await storeSet('readings:' + asset.id, formattedReadings);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to seed from Supabase", err);
+      }
+    }
+  }
+
   assets = a || [];
   for(const asset of assets){
     const r = await storeGet('readings:'+asset.id);
