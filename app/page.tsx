@@ -2,42 +2,11 @@
 "use client";
 
 import Script from "next/script";
-import { useState, useRef, useEffect } from "react";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export default function DashboardPage() {
-  const [showSupport, setShowSupport] = useState(false);
-  const [chatMessages, setChatMessages] = useState<{ role: "user" | "bot"; text: string }[]>([
-    { role: "bot", text: "Hello! I am here to help you find mistakes, machine errors, or loopholes. How can I assist you?" },
-  ]);
-  const [chatInput, setChatInput] = useState("");
-  const endOfMessagesRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages, showSupport]);
-
-  const handleSupportSend = () => {
-    if (!chatInput.trim()) return;
-    const userMsg = chatInput.trim();
-    setChatMessages((prev) => [...prev, { role: "user", text: userMsg }]);
-    setChatInput("");
-
-    setTimeout(() => {
-      const lower = userMsg.toLowerCase();
-      let reply = "I'm sorry, I couldn't fully understand that. If you're stuck, remember you can always reach out to our human support team.";
-      if (lower.includes("mistake") || lower.includes("error") || lower.includes("failed")) {
-        reply = "It looks like you're encountering an error. Please double-check your input parameters. If the machine continues to fail, it might be a deeper loophole in the configuration.";
-      } else if (lower.includes("loophole") || lower.includes("bug")) {
-        reply = "Our system is designed to be robust, but loopholes can occur. Can you provide more details about the unexpected behavior?";
-      } else if (lower.includes("help")) {
-        reply = "I am the Support Bot. I can help you identify mistakes, machine errors, or configuration loopholes. What issue are you facing today?";
-      }
-      setChatMessages((prev) => [...prev, { role: "bot", text: reply }]);
-    }, 600);
-  };
 
   // Called once script.js has fully loaded and executed (init() already ran at bottom of script.js)
   function onScriptReady() {
@@ -148,13 +117,7 @@ export default function DashboardPage() {
         >
           + Add asset
         </button>
-        <button
-          className="btn"
-          style={{ margin: '0 10px 10px', background: 'transparent', border: '1px dashed var(--line)', color: 'var(--muted)', textAlign: 'center' }}
-          onClick={() => setShowSupport(true)}
-        >
-          ? Support Chat
-        </button>
+
       </div>
 
       {/* ── MAIN PANEL ── */}
@@ -224,52 +187,7 @@ export default function DashboardPage() {
       {/* Toast notification */}
       <div className="toast" id="toast"></div>
 
-      {/* ── SUPPORT MODAL ── */}
-      {showSupport && (
-        <div className="modal-overlay show" style={{ zIndex: 1000 }}>
-          <div className="modal" style={{ width: '500px', display: 'flex', flexDirection: 'column', height: '600px', padding: 0, overflow: 'hidden' }}>
-            <div style={{ padding: '20px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0 }}>Support Chatbot</h3>
-              <button onClick={() => setShowSupport(false)} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '20px', lineHeight: 1 }}>&times;</button>
-            </div>
-            
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {chatMessages.map((m, i) => (
-                <div key={i} style={{ 
-                  maxWidth: '85%', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', lineHeight: 1.5,
-                  alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-                  background: m.role === 'user' ? 'var(--cyan)' : 'var(--panel-2)',
-                  color: m.role === 'user' ? '#001014' : 'var(--text)',
-                  border: m.role === 'bot' ? '1px solid var(--line)' : 'none',
-                  borderBottomRightRadius: m.role === 'user' ? '2px' : '8px',
-                  borderBottomLeftRadius: m.role === 'bot' ? '2px' : '8px',
-                  boxShadow: m.role === 'user' ? '0 2px 8px var(--glow-cyan)' : 'none'
-                }}>
-                  {m.text}
-                </div>
-              ))}
-              <div ref={endOfMessagesRef} />
-            </div>
 
-            <div style={{ padding: '14px 20px', background: 'rgba(255,56,96,0.05)', borderTop: '1px solid rgba(255,56,96,0.2)', borderBottom: '1px solid var(--line)', fontSize: '12px', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div><strong style={{ color: 'var(--red)' }}>Machine Failed?</strong> Call support:</div>
-              <div style={{ fontFamily: 'var(--mono)', color: 'var(--cyan)', fontWeight: 'bold', fontSize: '14px' }}>+91 7997012195</div>
-            </div>
-
-            <div style={{ padding: '20px', display: 'flex', gap: '10px' }}>
-              <input 
-                type="text" 
-                placeholder="Describe your mistake or loophole..." 
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSupportSend()}
-                style={{ flex: 1 }}
-              />
-              <button className="btn primary" onClick={handleSupportSend}>Send</button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
